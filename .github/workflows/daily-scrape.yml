@@ -70,8 +70,9 @@ jobs:
         run: |
           git config --global user.name "LB Scraper Bot"
           git config --global user.email "scraper@luxurybazaar.com"
-          # Remove history.json from working tree so rebase doesn't complain
-          rm -f history.json
+          # Clean working tree — only keep latest.json
+          git checkout -- . 2>/dev/null || true
+          git clean -fd 2>/dev/null || true
           git add latest.json 2>/dev/null || true
           git diff --staged --quiet || git commit -m "Auto update [skip ci] - $(TZ='America/New_York' date '+%Y-%m-%d %I:%M %p ET')"
           git fetch origin main
