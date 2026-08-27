@@ -471,18 +471,18 @@ async function ensureFullHistory() {
   if (fullHistoryLoaded || fullHistoryLoading) return;
   fullHistoryLoading = true;
   try {
-    // Get latest release asset URL
+    // Get tag name from latest release, then build direct download URL (no CORS issues)
     const relRes = await fetch("https://api.github.com/repos/CHRISEVO24/luxury-bazaar-tracker/releases/latest", {
       headers: { "Accept": "application/vnd.github.v3+json" }
     });
-    if (!relRes.ok) throw new Error("Could not reach GitHub Releases");
+    if (!relRes.ok) throw new Error("GitHub Releases API error");
     const relData = await relRes.json();
-    const asset = (relData.assets || []).find(a => a.name === "history.json");
-    if (!asset) throw new Error("history.json not found in latest release");
+    if (!relData.tag_name) throw new Error("No releases found");
 
-    // Download via direct URL
-    const dlRes = await fetch(asset.browser_download_url);
-    if (!dlRes.ok) throw new Error("Download failed");
+    // Direct download URL works for public repos without auth or CORS issues
+    const directUrl = `https://github.com/CHRISEVO24/luxury-bazaar-tracker/releases/download/${relData.tag_name}/history.json`;
+    const dlRes = await fetch(directUrl);
+    if (!dlRes.ok) throw new Error(`Download failed (${dlRes.status})`);
     const fullHistory = await dlRes.json();
 
     Object.assign(HISTORY, fullHistory);
@@ -494,7 +494,7 @@ async function ensureFullHistory() {
   } catch(e) {
     fullHistoryLoading = false;
     console.log("Full history load failed:", e.message);
-    toast("⚠️ Could not load full history: " + e.message);
+    toast("⚠️ Could not load full history for comparison tabs: " + e.message);
   }
 }
 
