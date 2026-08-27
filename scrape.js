@@ -131,11 +131,17 @@ async function main() {
   console.log('Luxury Bazaar — Inventory Snapshot');
   console.log('Timestamp :', timestamp);
 
-  // Load existing history from repo via GitHub API (always up to date)
-  let history = await loadHistoryFromRepo();
-  if (!Object.keys(history).length && fs.existsSync(HISTORY_FILE)) {
-    try { history = JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf8')); } catch(e) {}
-    console.log('Fallback: loaded history from file:', Object.keys(history).length, 'snapshots');
+  // Load existing history from disk (downloaded from releases by workflow)
+  let history = {};
+  if (fs.existsSync(HISTORY_FILE)) {
+    try {
+      history = JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf8'));
+      // Only keep slim watch-only snapshots (filter out old pre-watch-filter ones)
+      Object.keys(history).forEach(k => {
+        if (Object.keys(history[k]).length > 6000) delete history[k];
+      });
+      console.log('History snapshots loaded:', Object.keys(history).length);
+    } catch(e) { console.log('Could not parse history:', e.message); }
   }
 
   // Fetch current products
