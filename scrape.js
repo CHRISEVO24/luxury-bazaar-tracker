@@ -125,10 +125,9 @@ async function main() {
   console.log(`history.json: ${hkeys.length} snapshots, ${all.length} products each`);
 
   // Save SLIM latest.json — only current snapshot, only display fields (~2MB)
-  // latest.json only has IN-STOCK items for fast load (~3MB vs 14MB)
+  // latest.json has ALL watches (in-stock + out-of-stock) — ~5MB for watches only
   const slim = {};
   for (const [id, item] of Object.entries(snapshot)) {
-    if (!item.inStock) continue;  // skip out-of-stock
     slim[id] = {
       id: item.id, sku: item.sku, name: item.name,
       brand: item.brand, referenceNumber: item.referenceNumber,
