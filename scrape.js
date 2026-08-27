@@ -89,6 +89,32 @@ async function fetchByStatus(status) {
   return all;
 }
 
+async function loadHistoryFromRepo() {
+  const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
+  if (!token) return {};
+  const repo = process.env.GITHUB_REPOSITORY || 'CHRISEVO24/luxury-bazaar-tracker';
+  try {
+    const result = await new Promise((resolve, reject) => {
+      const opts = {
+        hostname: 'api.github.com',
+        path: `/repos/${repo}/contents/history.json`,
+        headers: { 'Authorization': `token ${token}`, 'User-Agent': 'LBTracker', 'Accept': 'application/vnd.github.v3+json' }
+      };
+      https.get(opts, res => {
+        let d = ''; res.on('data', c => d += c);
+        res.on('end', () => resolve(JSON.parse(d)));
+      }).on('error', reject);
+    });
+    if (result.content) {
+      const decoded = Buffer.from(result.content.replace(/\n/g,''), 'base64').toString('utf8');
+      const history = JSON.parse(decoded);
+      console.log(`Loaded ${Object.keys(history).length} snapshots from repo history.json`);
+      return history;
+    }
+  } catch(e) { console.log('Could not load history from repo:', e.message); }
+  return {};
+}
+
 async function main() {
   // ET timestamp using system TZ (set by workflow env or toLocaleString)
   const nowUtc = new Date();
@@ -105,11 +131,11 @@ async function main() {
   console.log('Luxury Bazaar — Inventory Snapshot');
   console.log('Timestamp :', timestamp);
 
-  // Load existing history (from releases download in workflow)
-  let history = {};
-  if (fs.existsSync(HISTORY_FILE)) {
+  // Load existing history from repo via GitHub API (always up to date)
+  let history = await loadHistoryFromRepo();
+  if (!Object.keys(history).length && fs.existsSync(HISTORY_FILE)) {
     try { history = JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf8')); } catch(e) {}
-    console.log('History snapshots:', Object.keys(history).length);
+    console.log('Fallback: loaded history from file:', Object.keys(history).length, 'snapshots');
   }
 
   // Fetch current products
