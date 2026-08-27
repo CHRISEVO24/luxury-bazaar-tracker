@@ -20,18 +20,17 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Download latest history.json from releases
+      - name: Download history.json from repo
         run: |
-          ASSET_URL=$(curl -s -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            https://api.github.com/repos/${{ github.repository }}/releases/latest \
-            | python3 -c "import sys,json; d=json.load(sys.stdin); assets=d.get('assets',[]); match=next((a['url'] for a in assets if a['name']=='history.json'),''); print(match)")
-          if [ -n "$ASSET_URL" ]; then
-            curl -s -L -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
-              -H "Accept: application/octet-stream" "$ASSET_URL" -o history.json \
-              && echo "Downloaded history.json ($(du -sh history.json | cut -f1))"
+          # Download the slim accumulated history.json directly from repo
+          HTTP_CODE=$(curl -s -o history.json -w "%{http_code}" \
+            -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
+            "https://raw.githubusercontent.com/${{ github.repository }}/main/history.json")
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "Downloaded history.json from repo ($(du -sh history.json | cut -f1))"
           else
-            echo "No existing history.json in releases"
+            echo "No history.json in repo yet - starting fresh"
+            rm -f history.json
           fi
 
       - name: Run inventory scraper
