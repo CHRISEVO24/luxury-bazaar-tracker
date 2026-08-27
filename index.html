@@ -447,20 +447,26 @@ let ATTR_CACHE = {}; // loaded from attribute-cache.json for FB export enrichmen
 
 async function autoLoadHistory() {
   try {
-    const res = await fetch("./history.json?t=" + Date.now());
-    if (!res.ok) throw new Error(`history.json not found (${res.status})`);
+    // Load latest.json first — just one snapshot, loads instantly
+    const res = await fetch("./latest.json?t=" + Date.now());
+    if (!res.ok) throw new Error(`latest.json not found (${res.status}). Run the scraper first.`);
     HISTORY = await res.json();
-
-    // Also try to load attribute-cache.json for full FB export descriptions
-    try {
-      const cacheRes = await fetch("./attribute-cache.json?t=" + Date.now());
-      if (cacheRes.ok) {
-        ATTR_CACHE = await cacheRes.json();
-        console.log("Attribute cache loaded:", Object.keys(ATTR_CACHE).length, "products");
-      }
-    } catch { /* cache is optional — FB export just uses short description */ }
-
     init();
+
+    // Lazy-load full history in background for Changes/Sold and Price Changes tabs
+    setTimeout(async () => {
+      try {
+        const fullRes = await fetch("./history.json?t=" + Date.now());
+        if (fullRes.ok) {
+          const fullHistory = await fullRes.json();
+          Object.assign(HISTORY, fullHistory);
+          populateSelects();
+          pcPopulateSelects();
+          console.log("Full history loaded:", Object.keys(HISTORY).length, "snapshots");
+        }
+      } catch(e) { console.log("Full history load failed:", e.message); }
+    }, 3000);
+
   } catch (e) {
     document.getElementById("overlay-loading").style.display = "none";
     document.getElementById("overlay-error").style.display   = "block";
