@@ -1,0 +1,1 @@
+{"name":"luxury-bazaar-tracker","version":"1.0.0","description":"Luxury Bazaar Inventory Tracker","scripts":{"scrape":"node scrape.js"},"dependencies":{}}
