@@ -133,6 +133,10 @@ async function main() {
   if (keys.length > 500) keys.slice(0, keys.length - 500).forEach(k => delete history[k]);
 
   fs.writeFileSync(HISTORY_FILE, JSON.stringify(history));
+  // Also save latest.json — just the most recent snapshot for fast dashboard loading
+  const latestExport = {};
+  latestExport[timestamp] = snapshot;
+  fs.writeFileSync('latest.json', JSON.stringify(latestExport));
   console.log(`Saved ${Object.keys(snapshot).length} products`);
 }
 
