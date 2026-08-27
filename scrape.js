@@ -115,8 +115,16 @@ async function main() {
   const snapshot = {};
   for (const p of all) snapshot[p.id] = buildProduct(p);
 
+  // Build slim snapshot for history.json (only fields needed for comparison)
+  const HIST_KEEP = new Set(['id','sku','name','brand','referenceNumber','price','regularPrice',
+    'stockStatus','inStock','categories','url','condition','caseSize','dialColor']);
+  const slimForHistory = {};
+  for (const [id, item] of Object.entries(snapshot)) {
+    slimForHistory[id] = Object.fromEntries(Object.entries(item).filter(([k]) => HIST_KEEP.has(k)));
+  }
+
   // Add to history and trim
-  history[timestamp] = snapshot;
+  history[timestamp] = slimForHistory;
   const hkeys = Object.keys(history).sort();
   if (hkeys.length > 500) hkeys.slice(0, hkeys.length - 500).forEach(k => delete history[k]);
 
