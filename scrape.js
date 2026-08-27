@@ -159,6 +159,69 @@ async function main() {
   latestOut[timestamp] = slim;
   fs.writeFileSync(LATEST_FILE, JSON.stringify(latestOut));
   console.log(`latest.json: 1 snapshot, ${Object.keys(slim).length} products, ~${Math.round(JSON.stringify(latestOut).length/1024)}KB`);
+
+  // Push files to repo via GitHub API (no git conflicts possible)
+  const latestStr = JSON.stringify(latestOut);
+  const histStr   = JSON.stringify(history);
+  await pushFileViaAPI('latest.json', latestStr);
+  await pushFileViaAPI('history.json', histStr);
+  console.log('Files pushed to repo successfully');
+}
+
+async function pushFileViaAPI(filename, content) {
+  const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
+  if (!token) { console.log('No token - skipping API push for', filename); return; }
+  const repo = process.env.GITHUB_REPOSITORY || 'CHRISEVO24/luxury-bazaar-tracker';
+
+  // Get current SHA
+  let sha = '';
+  try {
+    const getResp = await new Promise((resolve, reject) => {
+      const opts = {
+        hostname: 'api.github.com',
+        path: `/repos/${repo}/contents/${filename}`,
+        headers: { 'Authorization': `token ${token}`, 'User-Agent': 'LBTracker', 'Accept': 'application/vnd.github.v3+json' }
+      };
+      https.get(opts, res => {
+        let d = ''; res.on('data', c => d += c);
+        res.on('end', () => resolve(JSON.parse(d)));
+      }).on('error', reject);
+    });
+    sha = getResp.sha || '';
+  } catch(e) {}
+
+  const body = JSON.stringify({
+    message: `Auto update [skip ci] - ${new Date().toLocaleString('en-US',{timeZone:'America/New_York'})}`,
+    content: Buffer.from(content).toString('base64'),
+    ...(sha ? { sha } : {})
+  });
+
+  return new Promise((resolve, reject) => {
+    const opts = {
+      hostname: 'api.github.com',
+      path: `/repos/${repo}/contents/${filename}`,
+      method: 'PUT',
+      headers: {
+        'Authorization': `token ${token}`,
+        'User-Agent': 'LBTracker',
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(body)
+      }
+    };
+    const req = https.request(opts, res => {
+      let d = ''; res.on('data', c => d += c);
+      res.on('end', () => {
+        const result = JSON.parse(d);
+        if (result.content) console.log(`✅ ${filename} pushed via API`);
+        else console.log(`❌ ${filename} push failed:`, result.message);
+        resolve(result);
+      });
+    });
+    req.on('error', reject);
+    req.write(body);
+    req.end();
+  });
 }
 
 main().catch(e => { console.error('Error:', e.message); process.exit(1); });
