@@ -451,10 +451,13 @@ let ATTR_CACHE = {}; // loaded from attribute-cache.json for FB export enrichmen
 
 async function autoLoadHistory() {
   try {
-    // Load latest.json — single snapshot, loads instantly (~3MB)
-    const res = await fetch("./latest.json?t=" + Date.now());
-    if (!res.ok) throw new Error(`latest.json not found (${res.status}). Run the scraper first.`);
+    // Load history.json — all snapshots, slim fields (~7MB, loads fast)
+    const res = await fetch("./history.json?t=" + Date.now());
+    if (!res.ok) throw new Error(`history.json not found (${res.status}). Run the scraper first.`);
     HISTORY = await res.json();
+    // Set latest snapshot as the active one
+    const keys = Object.keys(HISTORY).sort();
+    if (!keys.length) throw new Error("No snapshots found in history.json");
     init();
   } catch (e) {
     document.getElementById("overlay-loading").style.display = "none";
