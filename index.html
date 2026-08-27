@@ -598,9 +598,6 @@ function populateDropdowns(products) {
   fillSelect("dd-stock",  stocks,      "All Status");
   const stockEl = document.getElementById("dd-stock");
   if (stockEl) { stockEl.value = "In Stock"; ddFilters["stock"] = "In Stock"; }
-  // Default stock filter to In Stock
-  const stockEl = document.getElementById("dd-stock");
-  if (stockEl) { stockEl.value = "In Stock"; ddFilters["stock"] = "In Stock"; }
   // Year dropdown — sorted descending (newest first)
   const years = [...new Set(products.map(p => (p.year||"").trim()).filter(Boolean))].sort((a,b) => b.localeCompare(a));
   fillSelect("dd-year", years, "All Years");
