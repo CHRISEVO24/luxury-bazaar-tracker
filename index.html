@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!-- LB v3 -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -596,8 +596,8 @@ function populateDropdowns(products) {
 
   fillSelect("dd-brand",  brands,      "All Brands");
   fillSelect("dd-stock",  stocks,      "All Status");
-  const stockEl = document.getElementById("dd-stock");
-  if (stockEl) { stockEl.value = "In Stock"; ddFilters["stock"] = "In Stock"; }
+  const lbStockEl = document.getElementById("dd-stock");
+  if (lbStockEl) { lbStockEl.value = "In Stock"; ddFilters["stock"] = "In Stock"; }
   // Year dropdown — sorted descending (newest first)
   const years = [...new Set(products.map(p => (p.year||"").trim()).filter(Boolean))].sort((a,b) => b.localeCompare(a));
   fillSelect("dd-year", years, "All Years");
