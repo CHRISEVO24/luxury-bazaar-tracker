@@ -70,7 +70,7 @@ jobs:
         run: |
           git config --global user.name "LB Scraper Bot"
           git config --global user.email "scraper@luxurybazaar.com"
-          git add history.json 2>/dev/null || true
+          git add latest.json 2>/dev/null || true  # history.json stays in releases only
           git diff --staged --quiet || git commit -m "Auto update [skip ci] - $(TZ='America/New_York' date '+%Y-%m-%d %I:%M %p ET')"
           git fetch origin main
           git rebase origin/main
