@@ -523,9 +523,10 @@ function toast(msg) {
 
 // ── init ──────────────────────────────────────────────────────────────────────
 function init() {
-  document.getElementById("overlay").style.display = "none";
   KEYS = Object.keys(HISTORY).sort();
   LATEST_SNAP = HISTORY[KEYS[KEYS.length - 1]] || {};
+  // Hide overlay immediately so page feels responsive
+  document.getElementById("overlay").style.display = "none";
 
   // Stats
   document.getElementById("stat-snaps").textContent    = KEYS.length;
