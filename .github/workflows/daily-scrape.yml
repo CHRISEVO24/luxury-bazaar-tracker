@@ -70,9 +70,10 @@ jobs:
         run: |
           git config --global user.name "LB Scraper Bot"
           git config --global user.email "scraper@luxurybazaar.com"
-          # Clean working tree — only keep latest.json
+          # Stage latest.json FIRST, then clean everything else
+          git add latest.json 2>/dev/null || true
           git checkout -- . 2>/dev/null || true
-          git clean -fd 2>/dev/null || true
+          git clean -fd --exclude=latest.json 2>/dev/null || true
           git add latest.json 2>/dev/null || true
           git diff --staged --quiet || git commit -m "Auto update [skip ci] - $(TZ='America/New_York' date '+%Y-%m-%d %I:%M %p ET')"
           git fetch origin main
