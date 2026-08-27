@@ -69,8 +69,9 @@ async function fetchByStatus(status) {
   let page = 1, totalPages = 1;
   process.stdout.write(`  Fetching ${status}`);
   while (page <= totalPages) {
+    // Filter by Product Type = "Luxury Watches" to only get watches (not jewelry etc)
     const { json, headers } = await fetchJson(
-      `${SITE_URL}/wp-json/wc/store/products?per_page=${PER_PAGE}&page=${page}&stock_status=${status}`
+      `${SITE_URL}/wp-json/wc/store/products?per_page=${PER_PAGE}&page=${page}&stock_status=${status}&attribute=pa_product-type&attribute_term=luxury-watches`
     );
     if (!Array.isArray(json) || !json.length) break;
     all.push(...json);
