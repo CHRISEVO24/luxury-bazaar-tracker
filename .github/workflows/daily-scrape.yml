@@ -66,16 +66,36 @@ jobs:
             "https://uploads.github.com/repos/${{ github.repository }}/releases/${RELEASE_ID}/assets?name=history.json"
           echo "Uploaded to release"
 
-      - name: Commit files to repo
+      - name: Commit files to repo via API
         run: |
-          git config --global user.name "LB Scraper Bot"
-          git config --global user.email "scraper@luxurybazaar.com"
-          git add latest.json history.json 2>/dev/null || true
-          git stash 2>/dev/null || true
-          git pull --rebase origin main 2>/dev/null || true
-          git stash pop 2>/dev/null || true
-          git add latest.json history.json 2>/dev/null || true
-          git diff --staged --quiet || git commit -m "Auto update [skip ci] - $(TZ='America/New_York' date '+%Y-%m-%d %I:%M %p ET')"
-          git push --force-with-lease || git push --force
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          # Use GitHub API to update files directly - no git conflicts possible
+          TIMESTAMP=$(TZ='America/New_York' date '+%Y-%m-%d %I:%M %p ET')
+
+          # Update latest.json via API
+          LATEST_SHA=$(curl -s -H "Authorization: token ${{ secrets.GH_TOKEN }}"             https://api.github.com/repos/${{ github.repository }}/contents/latest.json             | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('sha',''))" 2>/dev/null || echo "")
+
+          LATEST_B64=$(base64 -w 0 latest.json)
+          LATEST_PAYLOAD=$(python3 -c "
+import json, sys
+payload = {'message': 'Auto update [skip ci] - $TIMESTAMP', 'content': sys.argv[1]}
+sha = sys.argv[2]
+if sha: payload['sha'] = sha
+print(json.dumps(payload))
+" "$LATEST_B64" "$LATEST_SHA")
+
+          curl -s -X PUT             -H "Authorization: token ${{ secrets.GH_TOKEN }}"             -H "Content-Type: application/json"             https://api.github.com/repos/${{ github.repository }}/contents/latest.json             -d "$LATEST_PAYLOAD" | python3 -c "import sys,json; d=json.load(sys.stdin); print('latest.json:', d.get('content',{}).get('name','updated') if 'content' in d else d.get('message','error'))"
+
+          # Update history.json via API
+          HISTORY_SHA=$(curl -s -H "Authorization: token ${{ secrets.GH_TOKEN }}"             https://api.github.com/repos/${{ github.repository }}/contents/history.json             | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('sha',''))" 2>/dev/null || echo "")
+
+          HISTORY_B64=$(base64 -w 0 history.json)
+          HISTORY_PAYLOAD=$(python3 -c "
+import json, sys
+payload = {'message': 'Auto update [skip ci] - $TIMESTAMP', 'content': sys.argv[1]}
+sha = sys.argv[2]
+if sha: payload['sha'] = sha
+print(json.dumps(payload))
+" "$HISTORY_B64" "$HISTORY_SHA")
+
+          curl -s -X PUT             -H "Authorization: token ${{ secrets.GH_TOKEN }}"             -H "Content-Type: application/json"             https://api.github.com/repos/${{ github.repository }}/contents/history.json             -d "$HISTORY_PAYLOAD" | python3 -c "import sys,json; d=json.load(sys.stdin); print('history.json:', d.get('content',{}).get('name','updated') if 'content' in d else d.get('message','error'))"
+}
