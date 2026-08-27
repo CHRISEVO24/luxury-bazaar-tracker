@@ -90,10 +90,17 @@ async function fetchByStatus(status) {
 }
 
 async function main() {
-  // ET timestamp (UTC-4)
-  const nowEt = new Date(Date.now() - 4 * 3600000);
-  const p = n => String(n).padStart(2, '0');
-  const timestamp = `${nowEt.getUTCFullYear()}-${p(nowEt.getUTCMonth()+1)}-${p(nowEt.getUTCDate())} ${p(nowEt.getUTCHours())}:${p(nowEt.getUTCMinutes())} ET`;
+  // ET timestamp using system TZ (set by workflow env or toLocaleString)
+  const nowUtc = new Date();
+  const etStr = nowUtc.toLocaleString('en-US', {
+    timeZone: 'America/New_York',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false
+  });
+  // etStr format: "MM/DD/YYYY, HH:MM" — convert to "YYYY-MM-DD HH:MM ET"
+  const [datePart, timePart] = etStr.replace(',', '').trim().split(' ');
+  const [mo, da, yr] = datePart.split('/');
+  const timestamp = `${yr}-${mo}-${da} ${timePart} ET`;
 
   console.log('Luxury Bazaar — Inventory Snapshot');
   console.log('Timestamp :', timestamp);
