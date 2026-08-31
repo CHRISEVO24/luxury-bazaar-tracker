@@ -164,8 +164,9 @@ async function main() {
 
   // Add to history and trim
   history[timestamp] = slimForHistory;
+  // Trim to last 20 snapshots (~48MB) — well under GitHub's 100MB git limit
   const hkeys = Object.keys(history).sort();
-  if (hkeys.length > 500) hkeys.slice(0, hkeys.length - 500).forEach(k => delete history[k]);
+  if (hkeys.length > 20) hkeys.slice(0, hkeys.length - 20).forEach(k => delete history[k]);
 
   // Save full history (uploaded to releases by workflow)
   fs.writeFileSync(HISTORY_FILE, JSON.stringify(history));
@@ -192,12 +193,8 @@ async function main() {
   fs.writeFileSync(LATEST_FILE, JSON.stringify(latestOut));
   console.log(`latest.json: 1 snapshot, ${Object.keys(slim).length} products, ~${Math.round(JSON.stringify(latestOut).length/1024)}KB`);
 
-  // Push files to repo via GitHub API (no git conflicts possible)
-  const latestStr = JSON.stringify(latestOut);
-  const histStr   = JSON.stringify(history);
-  await pushFileViaAPI('latest.json', latestStr);
-  await pushFileViaAPI('history.json', histStr);
-  console.log('Files pushed to repo successfully');
+  // Files are committed via git in the workflow (API push removed — fails for files >1MB)
+  console.log('Files saved to disk — workflow will git-commit them');
 }
 
 async function pushFileViaAPI(filename, content) {

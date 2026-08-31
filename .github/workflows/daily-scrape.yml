@@ -20,19 +20,6 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Download history.json from repo
-        run: |
-          # Download the slim accumulated history.json directly from repo
-          HTTP_CODE=$(curl -s -o history.json -w "%{http_code}" \
-            -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
-            "https://raw.githubusercontent.com/${{ github.repository }}/main/history.json")
-          if [ "$HTTP_CODE" = "200" ]; then
-            echo "Downloaded history.json from repo ($(du -sh history.json | cut -f1))"
-          else
-            echo "No history.json in repo yet - starting fresh"
-            rm -f history.json
-          fi
-
       - name: Run inventory scraper
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -49,18 +36,16 @@ jobs:
             fi
           done
 
-      - name: Upload history.json to GitHub Releases
+      - name: Commit updated files
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          TSTAMP=$(TZ='America/New_York' date '+%Y-%m-%d-%H%M')
-          RELEASE_ID=$(curl -s -X POST \
-            -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            https://api.github.com/repos/${{ github.repository }}/releases \
-            -d "{\"tag_name\":\"snapshot-${TSTAMP}\",\"name\":\"Snapshot ${TSTAMP} ET\",\"body\":\"Automated snapshot\"}" \
-            | python3 -c "import sys,json; print(json.load(sys.stdin).get('id',''))")
-          curl -s -X POST \
-            -H "Authorization: token ${{ secrets.GH_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            --data-binary @history.json \
-            "https://uploads.github.com/repos/${{ github.repository }}/releases/${RELEASE_ID}/assets?name=history.json"
-          echo "Uploaded to release"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add history.json latest.json
+          git commit -m "Auto update [skip ci] - $(TZ='America/New_York' date '+%Y-%m-%d %H:%M ET')" || echo "No changes to commit"
+          git fetch origin main
+          git checkout -- .
+          git clean -fd
+          git rebase origin/main
+          git push
